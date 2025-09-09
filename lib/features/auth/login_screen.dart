@@ -194,7 +194,7 @@ class LoginScreen extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(
                               context,
-                            ).pushReplacementNamed('/landlord-dashboard');
+                            ).pushReplacementNamed('/landlord-login');
                           },
                           child: const Align(
                             alignment: Alignment.centerLeft,

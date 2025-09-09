@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'estates_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
@@ -50,6 +51,15 @@ class _LandlordDashboardScreenState extends State<LandlordDashboardScreen> {
     },
   ];
 
+  void _navigateToCreateEstate() async {
+    final created = await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const CreateEstatePage()));
+    if (created == true) {
+      setState(() {}); // Refresh Estates tab
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -92,7 +102,7 @@ class _LandlordDashboardScreenState extends State<LandlordDashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {},
+                    onPressed: _navigateToCreateEstate,
                     icon: const Icon(Icons.add),
                     label: const Text("Create Estate"),
                   ),
@@ -297,6 +307,167 @@ class _EstateCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class CreateEstatePage extends StatefulWidget {
+  const CreateEstatePage({Key? key}) : super(key: key);
+
+  @override
+  State<CreateEstatePage> createState() => _CreateEstatePageState();
+}
+
+class _CreateEstatePageState extends State<CreateEstatePage> {
+  final _formKey = GlobalKey<FormState>();
+  String name = '';
+  String address = '';
+  String description = '';
+
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF181F2A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF181F2A),
+        elevation: 0,
+        title: const Text(
+          "Create New Estate",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 19,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(22),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Fill in the details below to create a new estate for managing properties and tenants.",
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 18),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Estate Name *",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate name",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                onChanged: (v) => setState(() => name = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Address",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate address",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (v) => setState(() => address = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Description",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate description (optional)",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (v) => setState(() => description = v),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF232B3E)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3FE0F6),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: _loading
+                          ? null
+                          : () async {
+                              if (_formKey.currentState!.validate()) {
+                                setState(() => _loading = true);
+                                final newEstate = {
+                                  "name": name,
+                                  "address": address,
+                                  "desc": description,
+                                  "properties": 0,
+                                  "tenants": 0,
+                                  "active": true,
+                                };
+                                await FirebaseFirestore.instance
+                                    .collection('estates')
+                                    .add(newEstate);
+                                setState(() => _loading = false);
+                                Navigator.of(context).pop(true);
+                              }
+                            },
+                      child: _loading
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text("Create Estate"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

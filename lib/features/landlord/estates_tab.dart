@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LandlordEstatesTab extends StatefulWidget {
   const LandlordEstatesTab({super.key});
@@ -50,6 +51,22 @@ class _LandlordEstatesTabState extends State<LandlordEstatesTab> {
       "active": true,
     },
   ];
+
+  void _showCreateEstateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) =>
+          _CreateEstateDialog(onEstateCreated: _addEstateToList),
+    );
+  }
+
+  Future<void> _addEstateToList(Map<String, dynamic> newEstate) async {
+    // Add to Firestore
+    await FirebaseFirestore.instance.collection('estates').add(newEstate);
+    setState(() {
+      estates.add(newEstate);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -460,6 +477,164 @@ class _EstateCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateEstateDialog extends StatefulWidget {
+  final Function(Map<String, dynamic>) onEstateCreated;
+  const _CreateEstateDialog({required this.onEstateCreated});
+
+  @override
+  State<_CreateEstateDialog> createState() => _CreateEstateDialogState();
+}
+
+class _CreateEstateDialogState extends State<_CreateEstateDialog> {
+  final _formKey = GlobalKey<FormState>();
+  String name = '';
+  String address = '';
+  String description = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF181F2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.apartment, color: Color(0xFF3FE0F6)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      "Create New Estate",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Fill in the details below to create a new estate for managing properties and tenants.",
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 18),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Estate Name *",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate name",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                onChanged: (v) => setState(() => name = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Address",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate address",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (v) => setState(() => address = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: "Description",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF232B3E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  hintText: "Enter estate description (optional)",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onChanged: (v) => setState(() => description = v),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF232B3E)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3FE0F6),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          final newEstate = {
+                            "name": name,
+                            "address": address,
+                            "desc": description,
+                            "properties": 0,
+                            "tenants": 0,
+                            "active": true,
+                          };
+                          await widget.onEstateCreated(newEstate);
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: const Text("Create Estate"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
