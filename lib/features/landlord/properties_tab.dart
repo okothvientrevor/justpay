@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
+import 'create_property_page.dart';
 
 class LandlordPropertiesTab extends StatefulWidget {
   const LandlordPropertiesTab({super.key});
@@ -13,34 +16,11 @@ class _LandlordPropertiesTabState extends State<LandlordPropertiesTab> {
   String selectedType = "All";
   String selectedStatus = "All";
 
-  // Dummy property data
-  final List<Map<String, dynamic>> properties = [
-    {
-      "photo": null,
-      "address": "Apt 3B, Lisa Sass gata 18",
-      "unit": "3B",
-      "type": "Apartment",
-      "rent": 1200,
-      "status": "Occupied",
-      "rooms": 3,
-      "sqft": 120,
-      "parking": true,
-      "tenant": "John Doe",
-    },
-    {
-      "photo": null,
-      "address": "Flat 65, Dunbridge House",
-      "unit": "65",
-      "type": "Apartment",
-      "rent": 950,
-      "status": "Vacant",
-      "rooms": 2,
-      "sqft": 90,
-      "parking": false,
-      "tenant": null,
-    },
-    // ...add more properties as needed...
-  ];
+  void _openCreatePropertyPage() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreatePropertyPage()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +38,9 @@ class _LandlordPropertiesTabState extends State<LandlordPropertiesTab> {
                 children: [
                   _FilterDropdown(
                     value: selectedEstate,
-                    items: ["All", "Lisa Sass gata 18", "Dunbridge House"],
+                    items: [
+                      "All",
+                    ], // Estates can be loaded from Firestore if needed
                     onChanged: (v) {
                       if (v != null) setState(() => selectedEstate = v);
                     },
@@ -94,10 +76,41 @@ class _LandlordPropertiesTabState extends State<LandlordPropertiesTab> {
               ),
             ),
           ),
-          // Properties grid/list
+          // Properties grid/list from Firestore
           Expanded(
-            child: gridView
-                ? GridView.builder(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('properties')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No properties found',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+                final properties = snapshot.data!.docs
+                    .map((doc) => doc.data() as Map<String, dynamic>)
+                    .toList();
+                final filtered = properties.where((p) {
+                  if (selectedEstate != "All" &&
+                      (p["estate"] ?? "") != selectedEstate)
+                    return false;
+                  if (selectedType != "All" &&
+                      (p["type"] ?? "") != selectedType)
+                    return false;
+                  if (selectedStatus != "All" &&
+                      (p["status"] ?? "") != selectedStatus)
+                    return false;
+                  return true;
+                }).toList();
+                if (gridView) {
+                  return GridView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -109,39 +122,25 @@ class _LandlordPropertiesTabState extends State<LandlordPropertiesTab> {
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                         ),
-                    itemCount: properties.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, i) {
-                      final p = properties[i];
-                      if ((selectedEstate != "All" &&
-                              !p["address"].contains(selectedEstate)) ||
-                          (selectedType != "All" &&
-                              p["type"] != selectedType) ||
-                          (selectedStatus != "All" &&
-                              p["status"] != selectedStatus)) {
-                        return const SizedBox.shrink();
-                      }
-                      return _PropertyCardModern(property: p);
+                      return _PropertyCardModern(property: filtered[i]);
                     },
-                  )
-                : ListView.builder(
+                  );
+                } else {
+                  return ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    itemCount: properties.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, i) {
-                      final p = properties[i];
-                      if ((selectedEstate != "All" &&
-                              !p["address"].contains(selectedEstate)) ||
-                          (selectedType != "All" &&
-                              p["type"] != selectedType) ||
-                          (selectedStatus != "All" &&
-                              p["status"] != selectedStatus)) {
-                        return const SizedBox.shrink();
-                      }
-                      return _PropertyCardModern(property: p);
+                      return _PropertyCardModern(property: filtered[i]);
                     },
-                  ),
+                  );
+                }
+              },
+            ),
           ),
           // Add Property button
           Padding(
@@ -163,9 +162,7 @@ class _LandlordPropertiesTabState extends State<LandlordPropertiesTab> {
                 ),
                 icon: const Icon(Icons.add),
                 label: const Text("Add Property"),
-                onPressed: () {
-                  // TODO: Open property creation form
-                },
+                onPressed: _openCreatePropertyPage,
               ),
             ),
           ),

@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'onboard_tenant_page.dart';
 
 class LandlordTenantsTab extends StatefulWidget {
   const LandlordTenantsTab({super.key});
@@ -9,38 +11,14 @@ class LandlordTenantsTab extends StatefulWidget {
 
 class _LandlordTenantsTabState extends State<LandlordTenantsTab> {
   final TextEditingController _searchController = TextEditingController();
-
-  // Dummy tenant data
-  final List<Map<String, dynamic>> tenants = [
-    {
-      "name": "John Doe",
-      "photo": null,
-      "property": "Apt 3B, Lisa Sass gata 18",
-      "leaseStart": "2024-01-01",
-      "leaseEnd": "2024-12-31",
-      "rent": 1200,
-      "paymentStatus": "Paid",
-      "contact": "+256 700 111111",
-      "email": "john.doe@email.com",
-      "emergency": "Jane Doe (+256 700 222222)",
-    },
-    {
-      "name": "Jane Smith",
-      "photo": null,
-      "property": "Flat 65, Dunbridge House",
-      "leaseStart": "2024-03-01",
-      "leaseEnd": "2025-02-28",
-      "rent": 950,
-      "paymentStatus": "Overdue",
-      "contact": "+256 700 333333",
-      "email": "jane.smith@email.com",
-      "emergency": "John Smith (+256 700 444444)",
-    },
-    // ...add more tenants as needed...
-  ];
-
   String selectedEstate = "All";
   String selectedStatus = "All";
+
+  void _openOnboardTenantPage() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OnboardTenantPage()));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,23 +121,49 @@ class _LandlordTenantsTabState extends State<LandlordTenantsTab> {
           ),
           // Tenant List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              itemCount: tenants.length,
-              itemBuilder: (context, i) {
-                final t = tenants[i];
-                // Filter logic (simple demo)
-                if ((selectedEstate != "All" &&
-                        !t["property"].contains(selectedEstate)) ||
-                    (selectedStatus != "All" &&
-                        t["paymentStatus"] != selectedStatus) ||
-                    (_searchController.text.isNotEmpty &&
-                        !t["name"].toLowerCase().contains(
-                          _searchController.text.toLowerCase(),
-                        ))) {
-                  return const SizedBox.shrink();
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('tenants')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-                return _TenantCardModern(tenant: t);
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No tenants found',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+                final tenants = snapshot.data!.docs
+                    .map((doc) => doc.data() as Map<String, dynamic>)
+                    .toList();
+                final filtered = tenants.where((t) {
+                  if (selectedEstate != "All" &&
+                      (t["property"] ?? "") != selectedEstate)
+                    return false;
+                  if (selectedStatus != "All" &&
+                      (t["paymentStatus"] ?? "") != selectedStatus)
+                    return false;
+                  if (_searchController.text.isNotEmpty &&
+                      !(t["name"]?.toLowerCase() ?? "").contains(
+                        _searchController.text.toLowerCase(),
+                      ))
+                    return false;
+                  return true;
+                }).toList();
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 0,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, i) {
+                    return _TenantCardModern(tenant: filtered[i]);
+                  },
+                );
               },
             ),
           ),
@@ -181,9 +185,7 @@ class _LandlordTenantsTabState extends State<LandlordTenantsTab> {
                     ),
                     icon: const Icon(Icons.person_add),
                     label: const Text("Onboard Tenant"),
-                    onPressed: () {
-                      // TODO: Start onboarding workflow
-                    },
+                    onPressed: _openOnboardTenantPage,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -262,7 +264,7 @@ class _TenantCardModern extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          tenant["name"],
+                          tenant["name"] as String? ?? "",
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -281,7 +283,7 @@ class _TenantCardModern extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    tenant["property"],
+                    tenant["property"] as String? ?? "",
                     style: const TextStyle(
                       color: Color(0xFF3FE0F6),
                       fontSize: 14,
@@ -297,11 +299,15 @@ class _TenantCardModern extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        "Lease: ${tenant["leaseStart"]} - ${tenant["leaseEnd"]}",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                      Expanded(
+                        child: Text(
+                          "Lease: ${(tenant["leaseStart"] as String? ?? "-")} - ${(tenant["leaseEnd"] as String? ?? "-")}",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -315,16 +321,20 @@ class _TenantCardModern extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 2),
-                      Text(
-                        "Rent: \$${tenant["rent"]}/mo",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                      Expanded(
+                        child: Text(
+                          "Rent: \$${tenant["rent"] ?? 0}/mo",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       _PaymentStatusIndicatorModern(
-                        status: tenant["paymentStatus"],
+                        status: tenant["paymentStatus"] as String? ?? "Unknown",
                       ),
                     ],
                   ),
@@ -335,7 +345,7 @@ class _TenantCardModern extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          tenant["contact"],
+                          tenant["contact"] as String? ?? "",
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -348,7 +358,7 @@ class _TenantCardModern extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          tenant["email"],
+                          tenant["email"] as String? ?? "",
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -365,7 +375,7 @@ class _TenantCardModern extends StatelessWidget {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          "Emergency: ${tenant["emergency"]}",
+                          "Emergency: ${tenant["emergency"] as String? ?? "-"}",
                           style: const TextStyle(
                             color: Colors.orange,
                             fontSize: 12,
