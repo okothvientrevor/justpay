@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LandlordLoginPage extends StatefulWidget {
   const LandlordLoginPage({super.key});
+
+  static Future<void> checkTokenAndRedirect(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('landlord_token');
+    if (token != null && token.isNotEmpty) {
+      Navigator.of(context).pushReplacementNamed('/landlord-dashboard');
+    }
+  }
 
   @override
   State<LandlordLoginPage> createState() => _LandlordLoginPageState();
@@ -20,10 +29,12 @@ class _LandlordLoginPageState extends State<LandlordLoginPage> {
       _error = null;
     });
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('landlord_token', userCred.user?.uid ?? '');
       Navigator.of(context).pushReplacementNamed('/landlord-dashboard');
     } catch (e) {
       setState(() {
@@ -175,10 +186,13 @@ class _LandlordSignUpPageState extends State<LandlordSignUpPage> {
       _error = null;
     });
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final userCred = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('landlord_token', userCred.user?.uid ?? '');
       Navigator.of(context).pushReplacementNamed('/landlord-dashboard');
     } catch (e) {
       setState(() {
