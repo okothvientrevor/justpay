@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:ui';
+import 'invoice_widgets/modern_app_bar.dart';
+import 'invoice_widgets/invoice_header.dart';
+import 'invoice_widgets/invoice_form.dart';
+import 'invoice_widgets/invoice_actions.dart';
+import 'invoice_pdf_preview_page.dart';
 
 class CreateInvoicePage extends StatefulWidget {
   final String? estate;
@@ -9,7 +15,8 @@ class CreateInvoicePage extends StatefulWidget {
   State<CreateInvoicePage> createState() => _CreateInvoicePageState();
 }
 
-class _CreateInvoicePageState extends State<CreateInvoicePage> {
+class _CreateInvoicePageState extends State<CreateInvoicePage>
+    with TickerProviderStateMixin {
   String? selectedProperty;
   String? selectedTenant;
   String? invoiceType;
@@ -20,10 +27,37 @@ class _CreateInvoicePageState extends State<CreateInvoicePage> {
   List<String> tenantOptions = [];
   bool loading = false;
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
     _loadPropertiesAndTenants();
+  }
+
+  void _setupAnimations() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+        );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPropertiesAndTenants() async {
@@ -51,9 +85,22 @@ class _CreateInvoicePageState extends State<CreateInvoicePage> {
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: dueDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
+      initialDate: dueDate ?? DateTime.now().add(const Duration(days: 7)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF3FE0F6),
+              onPrimary: Colors.black,
+              surface: Color(0xFF232B3E),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) setState(() => dueDate = picked);
   }
@@ -62,257 +109,159 @@ class _CreateInvoicePageState extends State<CreateInvoicePage> {
     if (selectedTenant == null ||
         invoiceType == null ||
         amount <= 0 ||
-        dueDate == null)
+        dueDate == null) {
+      _showErrorSnackbar('Please fill in all required fields');
       return;
+    }
+
     setState(() => loading = true);
-    final invoice = {
-      'estate': widget.estate,
-      'property': selectedProperty,
-      'tenant': selectedTenant,
-      'invoiceType': invoiceType,
-      'amount': amount,
-      'dueDate': dueDate?.toIso8601String(),
-      'description': description,
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-    await FirebaseFirestore.instance.collection('invoices').add(invoice);
-    setState(() => loading = false);
-    Navigator.of(context).pop();
+    try {
+      final invoice = {
+        'estate': widget.estate,
+        'property': selectedProperty,
+        'tenant': selectedTenant,
+        'invoiceType': invoiceType,
+        'amount': amount,
+        'dueDate': dueDate?.toIso8601String(),
+        'description': description,
+        'status': 'pending',
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      await FirebaseFirestore.instance.collection('invoices').add(invoice);
+      setState(() => loading = false);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InvoicePdfPreviewPage(invoice: invoice),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackbar('Failed to create invoice. Please try again.');
+      setState(() => loading = false);
+    }
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Tenant Invoice'),
-        backgroundColor: const Color(0xFF181F2A),
-      ),
-      backgroundColor: const Color(0xFF181F2A),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            width: 400,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF232B3E),
-              borderRadius: BorderRadius.circular(18),
+      backgroundColor: const Color(0xFF0A0E1A),
+      body: Stack(
+        children: [
+          // Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.5,
+                colors: [Color(0xFF1A2332), Color(0xFF0A0E1A)],
+              ),
             ),
+          ),
+          // Floating orbs
+          Positioned(
+            top: -50,
+            right: -100,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF3FE0F6).withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Generate a professional invoice with payment link, QR code, and sharing options for tenant payments.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                // Custom App Bar
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: const ModernAppBar(),
                 ),
-                const SizedBox(height: 18),
-                DropdownButtonFormField<String>(
-                  value: widget.estate,
-                  items: [
-                    if (widget.estate != null)
-                      DropdownMenuItem(
-                        value: widget.estate,
-                        child: Text(widget.estate!),
-                      ),
-                  ],
-                  onChanged: null,
-                  decoration: InputDecoration(
-                    labelText: 'Select Estate',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0xFF232B3E),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  dropdownColor: const Color(0xFF232B3E),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedTenant,
-                  items: tenantOptions
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(() => selectedTenant = v),
-                  decoration: InputDecoration(
-                    labelText: 'Select Tenant',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0xFF232B3E),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  dropdownColor: const Color(0xFF232B3E),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: selectedProperty,
-                  items: propertyOptions
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setState(() => selectedProperty = v),
-                  decoration: InputDecoration(
-                    labelText: 'Select Property (optional)',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0xFF232B3E),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  dropdownColor: const Color(0xFF232B3E),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: invoiceType,
-                        items: ['Rent', 'Deposit', 'Other']
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (v) => setState(() => invoiceType = v),
-                        decoration: InputDecoration(
-                          labelText: 'Invoice Type',
-                          labelStyle: const TextStyle(color: Colors.white70),
-                          filled: true,
-                          fillColor: const Color(0xFF232B3E),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        dropdownColor: const Color(0xFF232B3E),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Amount (UGX)',
-                          labelStyle: const TextStyle(color: Colors.white70),
-                          filled: true,
-                          fillColor: const Color(0xFF232B3E),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => amount = int.tryParse(v) ?? 0,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: _pickDueDate,
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Due Date',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: const Color(0xFF232B3E),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    child: Text(
-                      dueDate != null
-                          ? "${dueDate!.day.toString().padLeft(2, '0')}/${dueDate!.month.toString().padLeft(2, '0')}/${dueDate!.year}"
-                          : 'dd/mm/yyyy',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'USh ${amount > 0 ? amount : 0}',
-                    style: const TextStyle(
-                      color: Color(0xFF3FE0F6),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0xFF232B3E),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                    hintText:
-                        'Enter invoice description (e.g., Monthly rent for January 2024)',
-                    hintStyle: const TextStyle(color: Colors.white54),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  maxLines: 2,
-                  onChanged: (v) => description = v,
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Color(0xFF232B3E)),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text("Cancel"),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3FE0F6),
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: loading ? null : _createInvoice,
-                        child: loading
-                            ? const SizedBox(
-                                height: 18,
-                                width: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                // Main Content
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 500),
+                            child: Column(
+                              children: [
+                                const InvoiceHeader(),
+                                const SizedBox(height: 30),
+                                InvoiceForm(
+                                  estate: widget.estate,
+                                  selectedTenant: selectedTenant,
+                                  selectedProperty: selectedProperty,
+                                  invoiceType: invoiceType,
+                                  amount: amount,
+                                  dueDate: dueDate,
+                                  description: description,
+                                  propertyOptions: propertyOptions,
+                                  tenantOptions: tenantOptions,
+                                  onTenantChanged: (value) =>
+                                      setState(() => selectedTenant = value),
+                                  onPropertyChanged: (value) =>
+                                      setState(() => selectedProperty = value),
+                                  onInvoiceTypeChanged: (value) =>
+                                      setState(() => invoiceType = value),
+                                  onAmountChanged: (value) => setState(
+                                    () => amount = int.tryParse(value) ?? 0,
+                                  ),
+                                  onDescriptionChanged: (value) =>
+                                      setState(() => description = value),
+                                  onDatePicker: _pickDueDate,
                                 ),
-                              )
-                            : const Text("Create Invoice & Payment Link"),
+                                const SizedBox(height: 30),
+                                InvoiceActions(
+                                  loading: loading,
+                                  amount: amount,
+                                  onCancel: () => Navigator.of(context).pop(),
+                                  onCreate: _createInvoice,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
