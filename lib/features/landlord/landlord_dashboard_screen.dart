@@ -68,7 +68,7 @@ class _LandlordDashboardScreenState extends State<LandlordDashboardScreen> {
       LandlordEstatesTab(),
       LandlordPropertiesTab(),
       LandlordTenantsTab(),
-      LandlordProfileTab(),
+      LandlordProfileTab(email: ''),
     ];
     return Scaffold(
       backgroundColor: const Color(0xFF181F2A),
