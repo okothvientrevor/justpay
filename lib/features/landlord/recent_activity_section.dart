@@ -1,10 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
-class RecentActivitySection extends StatelessWidget {
-  final List<Map<String, String>> activity;
+class RecentActivitySection extends StatefulWidget {
+  const RecentActivitySection({Key? key}) : super(key: key);
 
-  const RecentActivitySection({required this.activity, Key? key})
-    : super(key: key);
+  @override
+  State<RecentActivitySection> createState() => _RecentActivitySectionState();
+}
+
+class _RecentActivitySectionState extends State<RecentActivitySection> {
+  List<Map<String, dynamic>> activity = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecentActivities();
+  }
+
+  Future<void> _fetchRecentActivities() async {
+    final snap = await FirebaseFirestore.instance
+        .collection('recent_activities')
+        .orderBy('time', descending: true)
+        .limit(10)
+        .get();
+    if (!mounted) return;
+    setState(() {
+      activity = snap.docs.map((doc) => doc.data()).toList();
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +59,11 @@ class RecentActivitySection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ...activity.map(
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (activity.isEmpty)
+            const Text("No recent activity.", style: TextStyle(color: Colors.white54))
+          else ...activity.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
@@ -41,12 +71,12 @@ class RecentActivitySection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: _getActivityColor(item["type"]!).withOpacity(0.2),
+                      color: _getActivityColor(item["type"]).withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _getActivityIcon(item["type"]!),
-                      color: _getActivityColor(item["type"]!),
+                      _getActivityIcon(item["type"]),
+                      color: _getActivityColor(item["type"]),
                       size: 14,
                     ),
                   ),
@@ -56,7 +86,7 @@ class RecentActivitySection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item["desc"]!,
+                          item["desc"] ?? '',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -65,7 +95,7 @@ class RecentActivitySection extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          item["time"]!,
+                          _formatTime(item["time"]),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.6),
                             fontSize: 10,
@@ -83,7 +113,7 @@ class RecentActivitySection extends StatelessWidget {
     );
   }
 
-  Color _getActivityColor(String type) {
+  Color _getActivityColor(String? type) {
     switch (type) {
       case "payment":
         return const Color(0xFF38EF7D);
@@ -96,7 +126,7 @@ class RecentActivitySection extends StatelessWidget {
     }
   }
 
-  IconData _getActivityIcon(String type) {
+  IconData _getActivityIcon(String? type) {
     switch (type) {
       case "payment":
         return Icons.attach_money;
@@ -106,6 +136,21 @@ class RecentActivitySection extends StatelessWidget {
         return Icons.question_answer;
       default:
         return Icons.info;
+    }
+  }
+
+  String _formatTime(String? isoTime) {
+    if (isoTime == null) return '';
+    final dt = DateTime.tryParse(isoTime);
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 60) {
+      return "${diff.inMinutes}m ago";
+    } else if (diff.inHours < 24) {
+      return "${diff.inHours}h ago";
+    } else {
+      return DateFormat('MMM d').format(dt);
     }
   }
 }

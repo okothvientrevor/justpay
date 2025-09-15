@@ -38,7 +38,7 @@ class StatsGrid extends StatelessWidget {
               child: StatCard(
                 icon: Icons.trending_up,
                 label: "Monthly Revenue",
-                value: "USh ${formatter.format(monthlyRevenue)}",
+                value: "USh ${formatter.format(monthlyRevenue)}", // Uses prop from parent
                 gradient: const LinearGradient(
                   colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
                 ),

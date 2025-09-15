@@ -17,12 +17,14 @@ class CreateInvoicePage extends StatefulWidget {
 
 class _CreateInvoicePageState extends State<CreateInvoicePage>
     with TickerProviderStateMixin {
+  String? selectedEstate;
   String? selectedProperty;
   String? selectedTenant;
   String? invoiceType;
   int amount = 0;
   DateTime? dueDate;
   String description = '';
+  List<String> estateOptions = [];
   List<String> propertyOptions = [];
   List<String> tenantOptions = [];
   bool loading = false;
@@ -35,7 +37,12 @@ class _CreateInvoicePageState extends State<CreateInvoicePage>
   void initState() {
     super.initState();
     _setupAnimations();
-    _loadPropertiesAndTenants();
+    if (widget.estate == null) {
+      _loadEstates();
+    } else {
+      selectedEstate = widget.estate;
+      _loadPropertiesAndTenants();
+    }
   }
 
   void _setupAnimations() {
@@ -60,15 +67,28 @@ class _CreateInvoicePageState extends State<CreateInvoicePage>
     super.dispose();
   }
 
+  Future<void> _loadEstates() async {
+    final estatesSnap = await FirebaseFirestore.instance
+        .collection('estates')
+        .get();
+    setState(() {
+      estateOptions = estatesSnap.docs
+          .map((doc) => doc.data()['name'] as String? ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList();
+    });
+  }
+
   Future<void> _loadPropertiesAndTenants() async {
-    if (widget.estate == null) return;
+    final estateName = selectedEstate ?? widget.estate;
+    if (estateName == null) return;
     final propertiesSnap = await FirebaseFirestore.instance
         .collection('properties')
-        .where('estate', isEqualTo: widget.estate)
+        .where('estate', isEqualTo: estateName)
         .get();
     final tenantsSnap = await FirebaseFirestore.instance
         .collection('tenants')
-        .where('estate', isEqualTo: widget.estate)
+        .where('estate', isEqualTo: estateName)
         .get();
     setState(() {
       propertyOptions = propertiesSnap.docs
@@ -220,8 +240,27 @@ class _CreateInvoicePageState extends State<CreateInvoicePage>
                               children: [
                                 const InvoiceHeader(),
                                 const SizedBox(height: 30),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18,
+                                    horizontal: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: const Text(
+                                    "Invoice Details",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                    ),
+                                  ),
+                                ),
                                 InvoiceForm(
-                                  estate: widget.estate,
+                                  estate: selectedEstate ?? widget.estate,
                                   selectedTenant: selectedTenant,
                                   selectedProperty: selectedProperty,
                                   invoiceType: invoiceType,
@@ -242,6 +281,16 @@ class _CreateInvoicePageState extends State<CreateInvoicePage>
                                   onDescriptionChanged: (value) =>
                                       setState(() => description = value),
                                   onDatePicker: _pickDueDate,
+                                  estateOptions: estateOptions,
+                                  onEstateChanged: (value) {
+                                    setState(() {
+                                      selectedEstate = value;
+                                      selectedProperty = null;
+                                      selectedTenant = null;
+                                    });
+                                    _loadPropertiesAndTenants();
+                                  },
+                                  estateEnabled: widget.estate == null,
                                 ),
                                 const SizedBox(height: 30),
                                 InvoiceActions(

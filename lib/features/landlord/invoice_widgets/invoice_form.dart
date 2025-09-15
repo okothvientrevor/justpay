@@ -12,12 +12,15 @@ class InvoiceForm extends StatelessWidget {
   final String description;
   final List<String> propertyOptions;
   final List<String> tenantOptions;
+  final List<String> estateOptions;
   final ValueChanged<String?> onTenantChanged;
   final ValueChanged<String?> onPropertyChanged;
   final ValueChanged<String?> onInvoiceTypeChanged;
   final ValueChanged<String> onAmountChanged;
   final ValueChanged<String> onDescriptionChanged;
   final VoidCallback onDatePicker;
+  final ValueChanged<String?> onEstateChanged;
+  final bool estateEnabled;
 
   const InvoiceForm({
     super.key,
@@ -36,6 +39,9 @@ class InvoiceForm extends StatelessWidget {
     required this.onAmountChanged,
     required this.onDescriptionChanged,
     required this.onDatePicker,
+    required this.estateOptions,
+    required this.onEstateChanged,
+    required this.estateEnabled,
   });
 
   @override
@@ -54,22 +60,25 @@ class InvoiceForm extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Invoice Details',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
+              // const Text(
+              //   'Invoice Details',
+              //   style: TextStyle(
+              //     color: Colors.white,
+              //     fontSize: 18,
+              //     fontWeight: FontWeight.bold,
+              //   ),
+              // ),
+              // const SizedBox(height: 20),
               ModernDropdownField(
                 label: 'Estate',
                 value: estate,
-                items: estate != null ? [estate!] : [],
-                onChanged: null,
+                items: estateEnabled
+                    ? estateOptions
+                    : (estate != null ? [estate!] : []),
+                onChanged: estateEnabled ? onEstateChanged : null,
                 icon: Icons.apartment,
-                enabled: false,
+                enabled: estateEnabled,
+                hint: 'Select estate',
               ),
               const SizedBox(height: 16),
               ModernDropdownField(

@@ -9,17 +9,71 @@ class AddPaymentPage extends StatefulWidget {
 }
 
 class _AddPaymentPageState extends State<AddPaymentPage> {
+  String? selectedEstate;
   String? selectedTenant;
   String? selectedProperty;
   String? paymentMethod;
+  String? paymentType;
   String? amount;
   String? description;
 
-  final List<String> tenants = ["John Doe", "Jane Smith"];
-  final List<String> properties = ["Lisa Sass gata 18", "Dunbridge House"];
+  List<String> estates = [];
+  List<String> properties = [];
+  List<String> tenants = [];
   final List<String> paymentMethods = ["Cash", "Bank Transfer", "Mobile Money"];
+  final List<String> paymentTypes = [
+    "Rent",
+    "Deposit",
+    "Utilities",
+    "Maintenance",
+    "Other",
+  ];
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEstates();
+  }
+
+  Future<void> _loadEstates() async {
+    final estatesSnap = await FirebaseFirestore.instance
+        .collection('estates')
+        .get();
+    if (!mounted) return;
+    setState(() {
+      estates = estatesSnap.docs
+          .map((doc) => doc.data()['name'] as String? ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList();
+    });
+  }
+
+  Future<void> _loadPropertiesAndTenants() async {
+    if (selectedEstate == null) return;
+    final propertiesSnap = await FirebaseFirestore.instance
+        .collection('properties')
+        .where('estate', isEqualTo: selectedEstate)
+        .get();
+    final tenantsSnap = await FirebaseFirestore.instance
+        .collection('tenants')
+        .where('estate', isEqualTo: selectedEstate)
+        .get();
+    if (!mounted) return;
+    setState(() {
+      properties = propertiesSnap.docs
+          .map((doc) => doc.data()['address'] as String? ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList();
+      tenants = tenantsSnap.docs
+          .map((doc) => doc.data()['name'] as String? ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList();
+      selectedProperty = null;
+      selectedTenant = null;
+    });
+  }
 
   @override
   void dispose() {
@@ -29,10 +83,12 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
   }
 
   Future<void> _savePayment() async {
-    if (selectedTenant == null ||
+    if (selectedEstate == null ||
+        selectedTenant == null ||
         selectedProperty == null ||
         amount == null ||
-        amount!.isEmpty) {
+        amount!.isEmpty ||
+        paymentType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required fields'),
@@ -41,13 +97,28 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
       );
       return;
     }
-    await FirebaseFirestore.instance.collection('payments').add({
+    final paymentData = {
+      'estate': selectedEstate,
       'tenant': selectedTenant,
       'property': selectedProperty,
       'paymentMethod': paymentMethod,
+      'paymentType': paymentType,
       'amount': double.tryParse(amount ?? '') ?? 0,
       'description': description,
       'createdAt': DateTime.now().toIso8601String(),
+    };
+    await FirebaseFirestore.instance.collection('payments').add(paymentData);
+    // Save to recent activities
+    final activityDesc =
+        'Tenant $selectedTenant has paid UGX ${amount ?? "0"} for $paymentType';
+    await FirebaseFirestore.instance.collection('recent_activities').add({
+      'tenant': selectedTenant,
+      'estate': selectedEstate,
+      'property': selectedProperty,
+      'type': 'payment',
+      'desc': activityDesc,
+      'amount': double.tryParse(amount ?? '') ?? 0,
+      'time': DateTime.now().toIso8601String(),
     });
     Navigator.of(context).pop();
   }
@@ -79,11 +150,11 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
               style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
             const SizedBox(height: 18),
-            // Select Tenant
+            // Select Estate
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Select Tenant",
+                "Select Estate",
                 style: TextStyle(
                   color: Colors.white70,
                   fontWeight: FontWeight.w600,
@@ -92,8 +163,8 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
             ),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: selectedTenant,
-              items: tenants
+              value: selectedEstate,
+              items: estates
                   .map(
                     (e) => DropdownMenuItem(
                       value: e,
@@ -111,7 +182,7 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
-                hintText: "Choose a tenant",
+                hintText: "Choose an estate",
                 hintStyle: const TextStyle(color: Colors.white54),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -120,7 +191,10 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
               ),
               dropdownColor: const Color(0xFF232B3E),
               style: const TextStyle(color: Colors.white),
-              onChanged: (v) => setState(() => selectedTenant = v),
+              onChanged: (v) {
+                setState(() => selectedEstate = v);
+                _loadPropertiesAndTenants();
+              },
             ),
             const SizedBox(height: 16),
             // Select Property
@@ -165,6 +239,50 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
               dropdownColor: const Color(0xFF232B3E),
               style: const TextStyle(color: Colors.white),
               onChanged: (v) => setState(() => selectedProperty = v),
+            ),
+            const SizedBox(height: 16),
+            // Select Tenant
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Select Tenant",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: selectedTenant,
+              items: tenants
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF232B3E),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: "Choose a tenant",
+                hintStyle: const TextStyle(color: Colors.white54),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              dropdownColor: const Color(0xFF232B3E),
+              style: const TextStyle(color: Colors.white),
+              onChanged: (v) => setState(() => selectedTenant = v),
             ),
             const SizedBox(height: 16),
             // Payment Details
@@ -249,6 +367,50 @@ class _AddPaymentPageState extends State<AddPaymentPage> {
               ],
             ),
             const SizedBox(height: 12),
+            // Payment Type
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Payment Type",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: paymentType,
+              items: paymentTypes
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  )
+                  .toList(),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF232B3E),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: "Select payment type",
+                hintStyle: const TextStyle(color: Colors.white54),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              dropdownColor: const Color(0xFF232B3E),
+              style: const TextStyle(color: Colors.white),
+              onChanged: (v) => setState(() => paymentType = v),
+            ),
+            const SizedBox(height: 16),
             // Description
             Align(
               alignment: Alignment.centerLeft,

@@ -22,19 +22,10 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
     with TickerProviderStateMixin {
   String userName = "";
   double portfolioValue = 0;
-  final double monthlyRevenue = 18500;
+  double monthlyRevenue = 0;
+  List<double> revenueTrend = [];
   final double occupancyRate = 0.92;
   final int pendingMaintenance = 3;
-  final List<double> revenueTrend = [
-    12000,
-    13500,
-    15000,
-    17000,
-    18500,
-    20000,
-    21000,
-  ];
-  final List<String> months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
   final List<Map<String, String>> recentActivity = [
     {
       "type": "payment",
@@ -60,6 +51,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
   bool _loading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  List<String> months = [];
 
   @override
   void initState() {
@@ -72,6 +64,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _fetchPortfolioValue();
+    _fetchMonthlyRevenueAndTrend();
     _animationController.forward();
   }
 
@@ -102,6 +95,37 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
     }
     setState(() {
       portfolioValue = total;
+    });
+  }
+
+  Future<void> _fetchMonthlyRevenueAndTrend() async {
+    final now = DateTime.now();
+    final paymentsSnap = await FirebaseFirestore.instance
+        .collection('payments')
+        .get();
+    double currentMonthTotal = 0;
+    List<double> monthlyTotals = List.filled(7, 0);
+    List<String> monthsLabels = [];
+    for (int i = 6; i >= 0; i--) {
+      final month = DateTime(now.year, now.month - i, 1);
+      monthsLabels.add(DateFormat('MMM').format(month));
+      double monthTotal = 0;
+      for (var doc in paymentsSnap.docs) {
+        final data = doc.data();
+        final createdAt = DateTime.tryParse(data['createdAt'] ?? '') ?? now;
+        if (createdAt.year == month.year && createdAt.month == month.month) {
+          monthTotal += (data['amount'] is num
+              ? data['amount'].toDouble()
+              : double.tryParse(data['amount'].toString()) ?? 0);
+        }
+      }
+      monthlyTotals[6 - i] = monthTotal;
+      if (i == 0) currentMonthTotal = monthTotal;
+    }
+    setState(() {
+      monthlyRevenue = currentMonthTotal;
+      revenueTrend = monthlyTotals;
+      months = monthsLabels;
     });
   }
 
@@ -185,7 +209,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
                             const SizedBox(height: 24),
                             UpcomingEventsSection(events: events),
                             const SizedBox(height: 16),
-                            RecentActivitySection(activity: recentActivity),
+                            RecentActivitySection(),
                             const SizedBox(height: 32),
                           ],
                         ),
