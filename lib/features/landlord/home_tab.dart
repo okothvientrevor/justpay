@@ -43,10 +43,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
       "time": "1d ago",
     },
   ];
-  final List<Map<String, String>> events = [
-    {"title": "Lease Renewal - Apt 3B", "date": "2024-07-10"},
-    {"title": "Property Inspection", "date": "2024-07-12"},
-  ];
+  List<Map<String, String>> events = [];
 
   bool _loading = false;
   late AnimationController _animationController;
@@ -65,6 +62,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
     );
     _fetchPortfolioValue();
     _fetchMonthlyRevenueAndTrend();
+    _fetchUpcomingEvents();
     _animationController.forward();
   }
 
@@ -126,6 +124,32 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
       monthlyRevenue = currentMonthTotal;
       revenueTrend = monthlyTotals;
       months = monthsLabels;
+    });
+  }
+
+  Future<void> _fetchUpcomingEvents() async {
+    final now = DateTime.now();
+    final snap = await FirebaseFirestore.instance.collection('tasks').get();
+    final List<Map<String, String>> upcoming = [];
+    for (var doc in snap.docs) {
+      final data = doc.data();
+      DateTime? eventDate;
+      if (data['dueDate'] != null) {
+        eventDate = DateTime.tryParse(data['dueDate'].toString());
+      } else if (data['createdAt'] is String) {
+        eventDate = DateTime.tryParse(data['createdAt']);
+      } else if (data['createdAt'] is Timestamp) {
+        eventDate = (data['createdAt'] as Timestamp).toDate();
+      }
+      if (eventDate != null && eventDate.isAfter(now)) {
+        upcoming.add({
+          'title': data['description'] ?? 'Task',
+          'date': DateFormat('yyyy-MM-dd').format(eventDate),
+        });
+      }
+    }
+    setState(() {
+      events = upcoming;
     });
   }
 
@@ -207,7 +231,7 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
                                     labels: months,
                                   ),
                             const SizedBox(height: 24),
-                            UpcomingEventsSection(events: events),
+                            UpcomingEventsSection(),
                             const SizedBox(height: 16),
                             RecentActivitySection(),
                             const SizedBox(height: 32),

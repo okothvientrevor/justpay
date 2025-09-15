@@ -10,6 +10,22 @@ class RevenueChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (data.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF232B3E).withOpacity(0.7),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        ),
+        child: Center(
+          child: Text(
+            'No revenue data',
+            style: TextStyle(color: Colors.white54, fontSize: 16),
+          ),
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -54,6 +70,8 @@ class EnhancedLineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
     final paint = Paint()
       ..shader = const LinearGradient(
         colors: [Color(0xFF3FE0F6), Color(0xFF1E88E5)],

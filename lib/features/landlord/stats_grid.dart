@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class StatsGrid extends StatelessWidget {
+class StatsGrid extends StatefulWidget {
   final double portfolioValue;
   final double monthlyRevenue;
   final double occupancyRate;
@@ -16,6 +17,30 @@ class StatsGrid extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<StatsGrid> createState() => _StatsGridState();
+}
+
+class _StatsGridState extends State<StatsGrid> {
+  int pendingTasks = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPendingTasks();
+  }
+
+  Future<void> _fetchPendingTasks() async {
+    final snap = await FirebaseFirestore.instance
+        .collection('tasks')
+        .where('completed', isEqualTo: false)
+        .get();
+    if (!mounted) return;
+    setState(() {
+      pendingTasks = snap.size;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final formatter = NumberFormat('#,##0');
     return Column(
@@ -26,7 +51,7 @@ class StatsGrid extends StatelessWidget {
               child: StatCard(
                 icon: Icons.account_balance_wallet_outlined,
                 label: "Portfolio Value",
-                value: "USh ${formatter.format(portfolioValue)}",
+                value: "USh ${formatter.format(widget.portfolioValue)}",
                 gradient: const LinearGradient(
                   colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                 ),
@@ -38,7 +63,7 @@ class StatsGrid extends StatelessWidget {
               child: StatCard(
                 icon: Icons.trending_up,
                 label: "Monthly Revenue",
-                value: "USh ${formatter.format(monthlyRevenue)}", // Uses prop from parent
+                value: "USh ${formatter.format(widget.monthlyRevenue)}",
                 gradient: const LinearGradient(
                   colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
                 ),
@@ -54,7 +79,7 @@ class StatsGrid extends StatelessWidget {
               child: StatCard(
                 icon: Icons.pie_chart_outline,
                 label: "Occupancy Rate",
-                value: "${(occupancyRate * 100).toStringAsFixed(0)}%",
+                value: "${(widget.occupancyRate * 100).toStringAsFixed(0)}%",
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
                 ),
@@ -65,7 +90,7 @@ class StatsGrid extends StatelessWidget {
               child: StatCard(
                 icon: Icons.build_outlined,
                 label: "Pending Tasks",
-                value: "$pendingMaintenance",
+                value: "$pendingTasks",
                 gradient: const LinearGradient(
                   colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
                 ),

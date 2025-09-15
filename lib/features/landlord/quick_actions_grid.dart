@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'create_invoice_page.dart';
 import 'add_payment_page.dart';
+import 'maintenance_page.dart';
 
 class QuickActionsGrid extends StatelessWidget {
   @override
@@ -45,7 +46,12 @@ class QuickActionsGrid extends StatelessWidget {
               title: "Maintenance",
               subtitle: "Manage tasks",
               colors: [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
-              onTap: () {},
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MaintenancePage(),
+                ),
+              ),
             ),
             QuickActionCard(
               icon: Icons.analytics_outlined,
