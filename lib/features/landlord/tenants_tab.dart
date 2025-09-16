@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'onboard_tenant_page.dart';
+import 'tenant_details_page.dart';
 
 class LandlordTenantsTab extends StatefulWidget {
   const LandlordTenantsTab({super.key});
@@ -223,193 +224,216 @@ class _TenantCardModern extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF232B3E),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TenantDetailsPage(tenant: tenant),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: const Color(0xFF3FE0F6),
-              child: tenant["photo"] == null
-                  ? Text(
-                      tenant["name"][0],
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 26,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tenant["name"] as String? ?? "",
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Colors.white54,
-                        ),
-                        onPressed: () {
-                          // TODO: Show tenant actions menu
-                        },
-                      ),
-                    ],
-                  ),
-                  Text(
-                    tenant["property"] as String? ?? "",
-                    style: const TextStyle(
-                      color: Color(0xFF3FE0F6),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        color: Colors.white54,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          "Lease: ${(tenant["leaseStart"] as String? ?? "-")} - ${(tenant["leaseEnd"] as String? ?? "-")}",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.attach_money,
-                        color: Colors.white54,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          "Rent: \$${tenant["rent"] ?? 0}/mo",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _PaymentStatusIndicatorModern(
-                        status: tenant["paymentStatus"] as String? ?? "Unknown",
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.phone, color: Colors.white54, size: 16),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          tenant["contact"] as String? ?? "",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.email, color: Colors.white54, size: 16),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          tenant["email"] as String? ?? "",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.orange, size: 16),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          "Emergency: ${tenant["emergency"] as String? ?? "-"}",
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _TenantActionButton(
-                        icon: Icons.payments,
-                        label: "Payment History",
-                        onTap: () {},
-                      ),
-                      _TenantActionButton(
-                        icon: Icons.report,
-                        label: "Requests",
-                        onTap: () {},
-                      ),
-                      _TenantActionButton(
-                        icon: Icons.assignment,
-                        label: "Lease",
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF232B3E),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: const Color(0xFF3FE0F6),
+                child: tenant["photo"] == null
+                    ? Text(
+                        tenant["name"][0],
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 26,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tenant["name"] as String? ?? "",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.white54,
+                          ),
+                          onPressed: () {
+                            // TODO: Show tenant actions menu
+                          },
+                        ),
+                      ],
+                    ),
+                    Text(
+                      tenant["property"] as String? ?? "",
+                      style: const TextStyle(
+                        color: Color(0xFF3FE0F6),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            "Lease: ${(tenant["leaseStart"] as String? ?? "-")} - ${(tenant["leaseEnd"] as String? ?? "-")}",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.attach_money,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            "Rent: \$${tenant["rent"] ?? 0}/mo",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _PaymentStatusIndicatorModern(
+                          status:
+                              tenant["paymentStatus"] as String? ?? "Unknown",
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.phone,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            tenant["contact"] as String? ?? "",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(
+                          Icons.email,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            tenant["email"] as String? ?? "",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.warning,
+                          color: Colors.orange,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            "Emergency: ${tenant["emergency"] as String? ?? "-"}",
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _TenantActionButton(
+                          icon: Icons.payments,
+                          label: "Payment History",
+                          onTap: () {},
+                        ),
+                        _TenantActionButton(
+                          icon: Icons.report,
+                          label: "Requests",
+                          onTap: () {},
+                        ),
+                        _TenantActionButton(
+                          icon: Icons.assignment,
+                          label: "Lease",
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
