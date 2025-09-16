@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'create_property_page.dart';
+import 'property_details_page.dart';
 
 class LandlordPropertiesTab extends StatefulWidget {
   const LandlordPropertiesTab({super.key});
@@ -215,205 +216,209 @@ class _PropertyCardModern extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isVacant = property["status"] == "Vacant";
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF232B3E),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.10),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(10), // Slightly less padding
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Property photo
-                Container(
-                  height: 55,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[900],
-                    borderRadius: BorderRadius.circular(12),
-                    image: property["photo"] != null
-                        ? DecorationImage(
-                            image: NetworkImage(property["photo"]),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: property["photo"] == null
-                      ? const Center(
-                          child: Icon(
-                            Icons.photo,
-                            color: Colors.white54,
-                            size: 24,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        property["address"],
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isVacant ? Colors.orange[100] : Colors.blue[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isVacant ? "Vacant" : "Available",
-                        style: TextStyle(
-                          color: isVacant
-                              ? Colors.orange[900]
-                              : Colors.blue[900],
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  "${property["type"]} • Unit ${property["unit"]}",
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.meeting_room, color: Colors.white54, size: 13),
-                    Flexible(
-                      child: Text(
-                        "${property["rooms"]} rooms",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.square_foot, color: Colors.white54, size: 13),
-                    Flexible(
-                      child: Text(
-                        "${property["sqft"]} m²",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(Icons.attach_money, color: Colors.white54, size: 13),
-                    Flexible(
-                      child: Text(
-                        "UGX ${property["rent"]}",
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.people, color: Colors.white54, size: 13),
-                    Flexible(
-                      child: Text(
-                        property["tenant"] != null ? "1 tenants" : "0 tenants",
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                // Actions row, no Spacer, shrink to fit
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFF3FE0F6),
-                        size: 18,
-                      ),
-                      tooltip: "View Details",
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        // TODO: View property details
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.build,
-                        color: Color(0xFF3FE0F6),
-                        size: 18,
-                      ),
-                      tooltip: "Schedule Maintenance",
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        // TODO: Schedule maintenance
-                      },
-                    ),
-                    if (property["tenant"] != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.person,
-                          color: Color(0xFF3FE0F6),
-                          size: 18,
-                        ),
-                        tooltip: "Contact Tenant",
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          // TODO: Contact tenant
-                        },
-                      ),
-                  ],
-                ),
-              ],
-            ),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PropertyDetailsPage(property: property),
           ),
         );
       },
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF232B3E),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.all(10), // Slightly less padding
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Property photo
+              Container(
+                height: 55,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(12),
+                  image: property["photo"] != null
+                      ? DecorationImage(
+                          image: NetworkImage(property["photo"]),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: property["photo"] == null
+                    ? const Center(
+                        child: Icon(
+                          Icons.photo,
+                          color: Colors.white54,
+                          size: 24,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      property["address"],
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isVacant ? Colors.orange[100] : Colors.blue[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isVacant ? "Vacant" : "Available",
+                      style: TextStyle(
+                        color: isVacant ? Colors.orange[900] : Colors.blue[900],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                "${property["type"]} • Unit ${property["unit"]}",
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.meeting_room, color: Colors.white54, size: 13),
+                  Flexible(
+                    child: Text(
+                      "${property["rooms"]} rooms",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.square_foot, color: Colors.white54, size: 13),
+                  Flexible(
+                    child: Text(
+                      "${property["sqft"]} m²",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(Icons.attach_money, color: Colors.white54, size: 13),
+                  Flexible(
+                    child: Text(
+                      "UGX ${property["rent"]}",
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.people, color: Colors.white54, size: 13),
+                  Flexible(
+                    child: Text(
+                      property["tenant"] != null ? "1 tenants" : "0 tenants",
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              // Actions row, no Spacer, shrink to fit
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF3FE0F6),
+                      size: 18,
+                    ),
+                    tooltip: "View Details",
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      // TODO: View property details
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.build,
+                      color: Color(0xFF3FE0F6),
+                      size: 18,
+                    ),
+                    tooltip: "Schedule Maintenance",
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      // TODO: Schedule maintenance
+                    },
+                  ),
+                  if (property["tenant"] != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.person,
+                        color: Color(0xFF3FE0F6),
+                        size: 18,
+                      ),
+                      tooltip: "Contact Tenant",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        // TODO: Contact tenant
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

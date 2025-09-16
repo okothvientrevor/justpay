@@ -10,6 +10,8 @@ import 'revenue_chart.dart';
 import 'upcoming_events_section.dart';
 import 'recent_activity_section.dart';
 import 'skeletons.dart';
+import 'recent_activities_page.dart';
+import 'maintenance_page.dart';
 
 class LandlordHomeTab extends StatefulWidget {
   const LandlordHomeTab({super.key});
@@ -231,9 +233,26 @@ class _LandlordHomeTabState extends State<LandlordHomeTab>
                                     labels: months,
                                   ),
                             const SizedBox(height: 24),
-                            UpcomingEventsSection(),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MaintenancePage(),
+                                ),
+                              ),
+                              child: UpcomingEventsSection(),
+                            ),
                             const SizedBox(height: 16),
-                            RecentActivitySection(),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const RecentActivitiesPage(),
+                                ),
+                              ),
+                              child: RecentActivitySection(),
+                            ),
                             const SizedBox(height: 32),
                           ],
                         ),
