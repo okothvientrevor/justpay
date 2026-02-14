@@ -81,15 +81,7 @@ class InvoiceForm extends StatelessWidget {
                 hint: 'Select estate',
               ),
               const SizedBox(height: 16),
-              ModernDropdownField(
-                label: 'Tenant *',
-                value: selectedTenant,
-                items: tenantOptions,
-                onChanged: onTenantChanged,
-                icon: Icons.person,
-                hint: 'Select tenant',
-              ),
-              const SizedBox(height: 16),
+              // Property Dropdown (moved above tenant)
               ModernDropdownField(
                 label: 'Property (Optional)',
                 value: selectedProperty,
@@ -97,6 +89,16 @@ class InvoiceForm extends StatelessWidget {
                 onChanged: onPropertyChanged,
                 icon: Icons.home,
                 hint: 'Select property',
+              ),
+              const SizedBox(height: 16),
+              // Tenant Dropdown (moved below property)
+              ModernDropdownField(
+                label: 'Tenant *',
+                value: selectedTenant,
+                items: tenantOptions,
+                onChanged: onTenantChanged,
+                icon: Icons.person,
+                hint: 'Select tenant',
               ),
               const SizedBox(height: 16),
               ModernDropdownField(

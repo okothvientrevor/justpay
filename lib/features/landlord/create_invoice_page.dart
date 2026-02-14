@@ -82,14 +82,17 @@ class _CreateInvoicePageState extends State<CreateInvoicePage>
   Future<void> _loadPropertiesAndTenants() async {
     final estateName = selectedEstate ?? widget.estate;
     if (estateName == null) return;
+
     final propertiesSnap = await FirebaseFirestore.instance
         .collection('properties')
         .where('estate', isEqualTo: estateName)
         .get();
+
     final tenantsSnap = await FirebaseFirestore.instance
         .collection('tenants')
         .where('estate', isEqualTo: estateName)
         .get();
+
     setState(() {
       propertyOptions = propertiesSnap.docs
           .map((doc) => doc.data()['address'] as String? ?? '')
