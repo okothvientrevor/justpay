@@ -115,14 +115,8 @@ class _MakePaymentPageState extends State<MakePaymentPage>
                 txStatus == 'success' ||
                 txStatus == 'completed') {
               _pollSubscription?.cancel();
-              setState(() {
-                _isProcessing = false;
-                _statusMessage = '';
-              });
-              _showResultDialog(
-                success: true,
-                message: 'Payment completed successfully!',
-              );
+              // Now send the payment to the recipient
+              _sendPaymentToRecipient(contact, amount, description);
             } else if (txStatus == 'failed' ||
                 txStatus == 'cancelled' ||
                 txStatus == 'rejected') {
@@ -160,6 +154,42 @@ class _MakePaymentPageState extends State<MakePaymentPage>
             );
           },
         );
+  }
+
+  Future<void> _sendPaymentToRecipient(
+    String recipientMsisdn,
+    double amount,
+    String description,
+  ) async {
+    setState(() {
+      _statusMessage = 'Sending payment to recipient...';
+    });
+
+    final sendResult = await RelworxPaymentService.sendPayment(
+      msisdn: recipientMsisdn,
+      amount: amount,
+      description: description.isNotEmpty
+          ? description
+          : 'Payment from JustPay',
+    );
+
+    setState(() {
+      _isProcessing = false;
+      _statusMessage = '';
+    });
+
+    if (sendResult['success'] == true) {
+      _showResultDialog(
+        success: true,
+        message: 'Payment sent successfully to $recipientMsisdn!',
+      );
+    } else {
+      _showResultDialog(
+        success: false,
+        message:
+            'Failed to send payment: ${sendResult['message'] ?? 'Unknown error'}',
+      );
+    }
   }
 
   String _formatStatus(String status) {

@@ -99,6 +99,48 @@ app.get("/checkPaymentStatus", async (req, res) => {
   }
 });
 
+// ── POST /sendPayment ──
+app.post("/sendPayment", async (req, res) => {
+  try {
+    const { msisdn, amount, description, reference } = req.body;
+
+    if (!msisdn || !amount || !reference) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: msisdn, amount, reference",
+      });
+    }
+
+    const payload = {
+      account_no: ACCOUNT_NO,
+      reference: reference,
+      msisdn: msisdn,
+      currency: "UGX",
+      amount: parseFloat(amount),
+      description: description || "Send Payment.",
+    };
+
+    console.log("Sending payment:", JSON.stringify(payload));
+
+    const response = await fetch(`${RELWORX_BASE_URL}/send-payment`, {
+      method: "POST",
+      headers: relworxHeaders,
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log("Relworx send response:", response.status, JSON.stringify(data));
+
+    return res.status(response.status).json(data);
+  } catch (error) {
+    console.error("Error sending payment:", error);
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`,
+    });
+  }
+});
+
 // ── Start server ──
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -3,12 +3,8 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class RelworxPaymentService {
-  // ── Proxy server base URL ──
-  // After deploying to Render, replace with your actual URL, e.g.:
-  //   https://justpay-payment-proxy.onrender.com
-  // TODO: Replace this after deploying the payment-server to Render
-  static const String _proxyBaseUrl =
-      'https://justpay-payment-proxy.onrender.com';
+  // ── Proxy server base URL (deployed on Render) ──
+  static const String _proxyBaseUrl = 'https://justpay-xkyq.onrender.com';
 
   /// Generate a unique reference based on current datetime
   static String generateReference() {
@@ -88,6 +84,53 @@ class RelworxPaymentService {
     } catch (e) {
       print('Error checking payment status: $e');
       return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  /// Send payment to a recipient's mobile money account
+  static Future<Map<String, dynamic>> sendPayment({
+    required String msisdn,
+    required double amount,
+    required String description,
+  }) async {
+    final reference = generateReference();
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_proxyBaseUrl/sendPayment'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'msisdn': msisdn,
+          'amount': amount,
+          'description': description,
+          'reference': reference,
+        }),
+      );
+
+      print('Send Payment Response: ${response.statusCode} ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        data['reference'] = reference;
+        return data;
+      } else {
+        String errorMsg =
+            'Send payment failed with status ${response.statusCode}';
+        try {
+          final errData = jsonDecode(response.body);
+          if (errData['message'] != null) {
+            errorMsg = errData['message'];
+          }
+        } catch (_) {}
+        return {'success': false, 'message': errorMsg, 'reference': reference};
+      }
+    } catch (e) {
+      print('Error sending payment: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'reference': reference,
+      };
     }
   }
 
