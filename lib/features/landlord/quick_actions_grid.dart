@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'create_invoice_page.dart';
 import 'add_payment_page.dart';
 import 'maintenance_page.dart';
+import 'make_payment_page.dart';
 
 class QuickActionsGrid extends StatelessWidget {
   @override
@@ -54,11 +55,16 @@ class QuickActionsGrid extends StatelessWidget {
               ),
             ),
             QuickActionCard(
-              icon: Icons.analytics_outlined,
-              title: "Reports",
-              subtitle: "View analytics",
+              icon: Icons.payment_outlined,
+              title: "Make Payment",
+              subtitle: "Mobile money",
               colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
-              onTap: () {},
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MakePaymentPage(),
+                ),
+              ),
             ),
           ],
         ),

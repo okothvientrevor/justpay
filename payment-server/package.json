@@ -1,0 +1,17 @@
+{
+  "name": "justpay-payment-proxy",
+  "version": "1.0.0",
+  "description": "Proxy server for Relworx payment API – deploy on Render (free tier)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0",
+    "cors": "^2.8.5"
+  }
+}
